@@ -6,6 +6,8 @@ exports.hashPassword = (password) => {
     bcrypt.genSalt(10, (err, salt) => {
       if (err) {
         reject(err);
+
+        // arman
       }
       bcrypt.hash(password, salt, (err, hash) => {
         if (err) {
