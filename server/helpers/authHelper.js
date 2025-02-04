@@ -8,6 +8,8 @@ exports.hashPassword = (password) => {
         reject(err);
 
         // arman
+
+        
       }
       bcrypt.hash(password, salt, (err, hash) => {
         if (err) {
