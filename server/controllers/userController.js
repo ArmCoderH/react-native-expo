@@ -1,8 +1,6 @@
-// const JWT = require("jsonwebtoken");
-const { hashPassword, comparePassword } = require('./');
+const { hashPassword, comparePassword } = require('../helpers/authHelper');
 const userModel = require("../models/user.model");
-// var { expressjwt: jwt } = require("express-jwt");
-
+const JWT = require('jsonwebtoken');
 
 //register
 const registerController = async (req, res) => {
@@ -21,25 +19,25 @@ const registerController = async (req, res) => {
         message: "email is required",
       });
     }
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       return res.status(400).send({
         success: false,
-        message: "password is required and 6 character long",
+        message: "password is required and 8 character long",
       });
     }
-    //exisiting user
-    const exisitingUser = await userModel.findOne({ email });
-    if (exisitingUser) {
+    //existing user
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
       return res.status(500).send({
         success: false,
-        message: "User Already Register With This EMail",
+        message: "User Already Registered With This Email",
       });
     }
-    //hashed pasword
+    //hashed password
     const hashedPassword = await hashPassword(password);
 
     //save user
-    const user = await userModel({
+    const user = await new userModel({
       name,
       email,
       password: hashedPassword,
@@ -47,19 +45,71 @@ const registerController = async (req, res) => {
 
     return res.status(201).send({
       success: true,
-      message: "Registeration Successfull please login",
+      message: "Registration Successful, please login",
     });
   } catch (error) {
-    console.log(error);
+    console.error('Error in Register API:', error);
     return res.status(500).send({
       success: false,
       message: "Error in Register API",
-      error,
+      error: error.message || error,
     });
   }
 };
 
+//login
+const loginController = async (req, res) => {
+  try {
+
+    const {email,password} = req.body;
+
+    if (!email || !password) {
+      return res.status(500).send({
+        success: false,
+        message: "Please Provide Email or Password",
+      });
+    }
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(500).send({
+        success: false,
+        message: "User Not Found",
+      });
+    }
+
+    //match password
+
+    const match  = await comparePassword(password, user.password);
+    if (!match) {
+      return res.status(500).send({
+        success: false,
+        message: "Invalid Password",
+      });
+    }
+
+
+    //jwt TOKEN GENERATOR
+    const token = JWT.sign({_id:user._id}, process.env.JWT_SECRET, {expiresIn: '7d'});
+    res.status(200).send({
+      success: true,
+      message: "Login Successful",
+      token,
+      data: user,
+    });
+    
+  
+  } catch (error) {
+    console.error('Error in Login API:', error);
+    return res.status(500).send({
+      success: false,
+      message: "Error in Login API",
+      error: error.message || error,
+    })
+  }
+}
 
 module.exports = {
   registerController,
+  loginController
 };
