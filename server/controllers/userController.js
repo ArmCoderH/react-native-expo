@@ -60,8 +60,7 @@ const registerController = async (req, res) => {
 //login
 const loginController = async (req, res) => {
   try {
-
-    const {email,password} = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(500).send({
@@ -79,8 +78,7 @@ const loginController = async (req, res) => {
     }
 
     //match password
-
-    const match  = await comparePassword(password, user.password);
+    const match = await comparePassword(password, user.password);
     if (!match) {
       return res.status(500).send({
         success: false,
@@ -88,28 +86,61 @@ const loginController = async (req, res) => {
       });
     }
 
-
     //jwt TOKEN GENERATOR
-    const token = JWT.sign({_id:user._id}, process.env.JWT_SECRET, {expiresIn: '7d'});
+    const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(200).send({
       success: true,
       message: "Login Successful",
       token,
       data: user,
     });
-    
-  
   } catch (error) {
     console.error('Error in Login API:', error);
     return res.status(500).send({
       success: false,
       message: "Error in Login API",
       error: error.message || error,
-    })
+    });
   }
-}
+};
+
+const updateUserControll = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const user = await userModel.findOne({ email });
+    if (!password || password.length < 8) {
+      return res.status(400).send({
+        success: false,
+        message: "password is required and 8 character long",
+      });
+    }
+
+    const hashedPassword = password ? await hashPassword(password) : undefined;
+    const updateUser = await userModel.findOneAndUpdate(
+      { email },
+      {
+        name: name || user.name,
+        password: hashedPassword || user.password,
+      },
+      { new: true }
+    );
+    res.status(200).send({
+      success: true,
+      message: "User Updated Successfully",
+      updateUser,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in Update User API",
+      error: error.message || error,
+    });
+  }
+};
 
 module.exports = {
   registerController,
-  loginController
+  loginController,
+  updateUserControll,
 };
